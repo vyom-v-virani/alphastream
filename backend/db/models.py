@@ -27,3 +27,16 @@ class Signal(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     ticker = relationship("Ticker", back_populates="signals")
+
+
+class WeatherObservation(Base):
+    __tablename__ = "weather_observations"
+
+    id = Column(Integer, primary_key=True)
+    state_fips = Column(String(10), nullable=False)
+    state_name = Column(String(50), nullable=False)
+    date = Column(DateTime, nullable=False)
+    tmax_celsius = Column(Float)
+    tmin_celsius = Column(Float)
+    prcp_mm = Column(Float)
+    fetched_at = Column(DateTime, default=datetime.utcnow, nullable=False)
