@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -39,4 +39,17 @@ class WeatherObservation(Base):
     tmax_celsius = Column(Float)
     tmin_celsius = Column(Float)
     prcp_mm = Column(Float)
+    fetched_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class EarningsTranscript(Base):
+    __tablename__ = "earnings_transcripts"
+
+    id = Column(Integer, primary_key=True)
+    ticker_id = Column(Integer, ForeignKey("tickers.id"), nullable=False)
+    filing_date = Column(DateTime, nullable=False)
+    accession_number = Column(String(50), nullable=False, unique=True)
+    document_url = Column(String(500))
+    cleaned_text = Column(Text, nullable=False)
+    ceo_cfo_text = Column(Text)
     fetched_at = Column(DateTime, default=datetime.utcnow, nullable=False)
