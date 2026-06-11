@@ -40,3 +40,20 @@ alphastream/
 - SQLAlchemy for PostgreSQL ORM
 - Environment variables via .env file, never hardcoded
 - Each pipeline step (fetch, clean, transform, store) in separate functions
+
+@AGENTS.md
+## Known Limitations
+
+### Earnings Pipeline — Transcript Selection
+The earnings pipeline currently fetches the 8-K press release document rather than the actual earnings call transcript exhibit. This causes identical VADER scores across all filings since the press release boilerplate is consistent. 
+
+Fix: Parse the filing index more precisely to identify and fetch the earnings call transcript exhibit (typically EX-99.1 with "transcript" in the description). Implement when building FinBERT in Phase 3 since the transcript text is the primary input for that model.
+
+### Options Flow — Sweep Detection
+yfinance doesn't expose Greeks (delta) so sweep detection never fires. Only large order and unusual vol/OI ratio classification works. 
+
+Fix: Upgrade to Polygon Starter tier or use CBOE LiveVol for tick-level trade data in v2.
+
+### ApeWisdom — No Historical Backfill
+ApeWisdom only provides current + 24h ago data. No historical API available. Data accumulates going forward from pipeline start date only.
+

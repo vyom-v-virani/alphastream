@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -58,6 +59,7 @@ def fetch_options_chain(ticker: str = "AAPL") -> list[dict]:
             break  # yfinance returns expirations in ascending order
 
         chain = yf_ticker.option_chain(expiry_str)
+        time.sleep(0.5)  # avoid hammering Yahoo Finance across rapid expiration fetches
 
         for contract_type, df in [("call", chain.calls), ("put", chain.puts)]:
             for _, row in df.iterrows():

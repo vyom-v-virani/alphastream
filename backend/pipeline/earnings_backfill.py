@@ -88,64 +88,27 @@ def fetch_all_earnings_8ks(cik: str = AAPL_CIK, years_back: int = BACKFILL_YEARS
 
 # ── price data and labelling ────────────────────────────────────────────────
 
-def fetch_historical_prices(ticker: str, retries: int = 5, base_delay: float = 30.0) -> pd.Series:
+def fetch_historical_prices(ticker: str) -> pd.Series:
     """
     Download split/dividend-adjusted daily close prices for the full backfill
     window plus the volatility-lookback buffer. Returns a tz-naive pd.Series
-    indexed by normalised date. Retries on rate-limit errors with exponential backoff.
-    Tries yf.download first; falls back to Ticker.history on failure.
+    indexed by normalised date.
     """
     extra = (VOLATILITY_LOOKBACK // 252) + 1
-    start_dt = datetime.now() - timedelta(days=(BACKFILL_YEARS + extra) * 365)
-    start_str = start_dt.strftime("%Y-%m-%d")
-
-    last_exc: Exception | None = None
-    for attempt in range(retries):
-        if attempt > 0:
-            delay = base_delay * (2 ** (attempt - 1))
-            print(f"  yfinance rate limited — retrying in {delay:.0f}s (attempt {attempt + 1}/{retries})...")
-            time.sleep(delay)
-        # Use a browser-like session to avoid Yahoo Finance rate-limit fingerprinting
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/125.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-        })
-
-        try:
-            # Primary: yf.download with custom session
-            df = yf.download(
-                ticker,
-                start=start_str,
-                auto_adjust=True,
-                progress=False,
-                multi_level_index=False,
-                session=session,
-            )
-            if not df.empty:
-                prices: pd.Series = df["Close"].squeeze()
-                prices.index = pd.to_datetime(prices.index).tz_localize(None).normalize()
-                return prices
-        except Exception as exc:
-            last_exc = exc
-
-        # Fallback: Ticker.history with the same session
-        try:
-            hist = yf.Ticker(ticker, session=session).history(start=start_str, auto_adjust=True)
-            if not hist.empty:
-                prices = hist["Close"].squeeze()
-                prices.index = pd.to_datetime(prices.index).tz_localize(None).normalize()
-                return prices
-            last_exc = ValueError(f"No price data returned for {ticker}")
-        except Exception as exc:
-            last_exc = exc
-
-    raise ValueError(f"Failed to download prices for {ticker} after {retries} attempts: {last_exc}")
+    start = datetime.now() - timedelta(days=(BACKFILL_YEARS + extra) * 365)
+    time.sleep(2)  # give Yahoo Finance a moment before a large bulk download
+    df = yf.download(
+        ticker,
+        start=start.strftime("%Y-%m-%d"),
+        auto_adjust=True,
+        progress=False,
+        multi_level_index=False,
+    )
+    if df.empty:
+        raise ValueError(f"No price data returned for {ticker}")
+    prices: pd.Series = df["Close"].squeeze()
+    prices.index = pd.to_datetime(prices.index).tz_localize(None).normalize()
+    return prices
 
 
 def calculate_dynamic_thresholds(prices: pd.Series, filing_ts: pd.Timestamp) -> dict[int, float]:
@@ -321,7 +284,7 @@ def run_earnings_backfill_pipeline() -> None:
         print("Step 2: Downloading AAPL adjusted close prices...")
         prices = fetch_historical_prices("AAPL")
         print(f"  {len(prices)} trading days loaded "
-              f"({prices.index[0].date()} → {prices.index[-1].date()})")
+              f"({prices.index[0].date()} to {prices.index[-1].date()})")
 
         ticker_obj = get_or_create_ticker(db, "AAPL")
         processed = skipped = failed = 0
