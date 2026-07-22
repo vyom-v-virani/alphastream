@@ -157,18 +157,21 @@ def _score_precipitation(prcp_mm: float, month: int) -> float:
     return -0.5  # > 15 mm/day: flooding / excess moisture risk
 
 
-def calculate_corn_impact_score(aggregated: dict) -> tuple[float, str]:
+def calculate_corn_impact_score(aggregated: dict, month: int | None = None) -> tuple[float, str]:
     """
     Compute weighted crop-quality score from aggregated state weather data.
 
     Weights state production share against monthly growing-phase weights
     (temperature vs. precipitation importance shifts through the season).
+    `month` selects which PHASE_WEIGHTS to apply and defaults to the current
+    calendar month; callers scoring historical data (e.g. a backfill) should
+    pass the actual month the aggregated data belongs to.
 
     Returns (crop_score, label) where crop_score is -1.0 (severe damage) to
     1.0 (ideal conditions). A high crop score implies abundant supply →
     bearish ZC futures price; caller should negate for a price-direction signal.
     """
-    current_month = datetime.now().month
+    current_month = month if month is not None else datetime.now().month
     temp_weight, prcp_weight = PHASE_WEIGHTS.get(current_month, (0.50, 0.50))
 
     weighted_crop_score = 0.0

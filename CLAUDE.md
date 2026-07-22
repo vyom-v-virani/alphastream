@@ -57,3 +57,7 @@ Fix: Upgrade to Polygon Starter tier or use CBOE LiveVol for tick-level trade da
 ### ApeWisdom — No Historical Backfill
 ApeWisdom only provides current + 24h ago data. No historical API available. Data accumulates going forward from pipeline start date only.
 
+## On-Demand Backfill (Planned)
+When a user searches for a ticker not in the database, trigger background backfill 
+for that ticker across all pipeline sources (earnings, google_trends, weather). 
+Show loading state on frontend while backfill runs. Implement in Phase 6.
